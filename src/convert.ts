@@ -195,7 +195,15 @@ const UNITS: UnitDef[] = [
 	{
 		category: "volume",
 		type: "imperial",
-		names: ["fl oz", "floz", "fluid ounce", "fluid ounces"],
+		names: [
+			"fl oz",
+			"floz",
+			"fluid ounce",
+			"fluid ounces",
+			"fl. oz",
+			"fl oz.",
+			"fl. oz.",
+		],
 		toBase: (v) => v * 0.0295735,
 		fromBase: (v) => v / 0.0295735,
 		target: "mL",
@@ -204,7 +212,9 @@ const UNITS: UnitDef[] = [
 
 function findTargetUnit(unit: UnitDef): UnitDef | undefined {
 	const targetLower = unit.target.toLowerCase().replace(/^°/, "°");
-	return UNITS.find((u) => u.names.some((n) => n.toLowerCase() === targetLower));
+	return UNITS.find((u) =>
+		u.names.some((n) => n.toLowerCase() === targetLower),
+	);
 }
 
 const UNIT_NAMES_SORTED = UNITS.flatMap((u) => u.names).sort(
