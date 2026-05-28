@@ -200,4 +200,4 @@ If you prefer to run Docker directly on the VPS without GitHub Actions:
 docker compose up -d
 ```
 
-The SQLite database (`guild_config.db`) is stored in a Docker volume named `data` and persists across container restarts.
+The SQLite database (`guild_config.db`) is stored in a Docker volume named `data` and persists across restarts.
