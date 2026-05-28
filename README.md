@@ -114,3 +114,89 @@ bun run dev
 ```
 
 `bun run dev` runs with watch mode (auto-restarts on file changes). Use `bun run start` for production.
+
+## Deploy to VPS with Docker
+
+The project includes a GitHub Actions workflow that automatically builds and deploys to your VPS on every push to `main`.
+
+### How it works
+
+1. Push to `main` → GitHub Actions builds a Docker image and pushes it to GitHub Container Registry (GHCR)
+2. The workflow SSHs into your VPS, pulls the new image, and restarts the container
+3. The SQLite database persists across deployments via a Docker volume
+
+### 1. VPS setup
+
+Install Docker and Docker Compose on your VPS, then create a deploy directory:
+
+```bash
+mkdir -p ~/unit-bot && cd ~/unit-bot
+```
+
+Copy `docker-compose.yml` from this repo to the VPS and update the image name:
+
+```yaml
+services:
+  unit-bot:
+    image: ghcr.io/YOUR_GITHUB_USERNAME/unit-bot:latest
+    container_name: unit-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - data:/app/data
+
+volumes:
+  data:
+```
+
+Create a `.env` file:
+
+```bash
+cat > .env << 'EOF'
+DISCORD_TOKEN=your-actual-token-here
+EOF
+```
+
+### 2. GitHub Secrets
+
+Go to your repo → **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Description |
+|---|---|
+| `VPS_HOST` | Your VPS IP address or hostname |
+| `VPS_USERNAME` | SSH username (e.g. `root`) |
+| `VPS_SSH_KEY` | Private SSH key for the VPS |
+| `VPS_DEPLOY_PATH` | Deploy directory on VPS (e.g. `/home/user/unit-bot`) |
+
+To generate an SSH key pair (if you don't have one):
+
+```bash
+ssh-keygen -t ed25519 -C "deploy" -f ~/.ssh/deploy_key -N ""
+# Copy the public key to your VPS:
+ssh-copy-id -i ~/.ssh/deploy_key.pub user@your-vps-ip
+# Copy the private key content into the VPS_SSH_KEY secret
+```
+
+### 3. Container registry
+
+The workflow uses GitHub Container Registry (GHCR) by default — no extra setup needed since `GITHUB_TOKEN` is provided automatically.
+
+### 4. Deploy
+
+Push to `main` and the workflow will build and deploy automatically:
+
+```bash
+git push origin main
+```
+
+You can monitor the deployment in the **Actions** tab of your GitHub repo.
+
+### Manual Docker run (without CI/CD)
+
+If you prefer to run Docker directly on the VPS without GitHub Actions:
+
+```bash
+docker compose up -d
+```
+
+The SQLite database (`guild_config.db`) is stored in a Docker volume named `data` and persists across container restarts.

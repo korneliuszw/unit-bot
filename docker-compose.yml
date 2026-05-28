@@ -1,0 +1,11 @@
+services:
+  unit-bot:
+    image: ${IMAGE:-ghcr.io/OWNER/unit-bot:latest}
+    container_name: unit-bot
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      - data:/app/data
+
+volumes:
+  data:
