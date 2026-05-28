@@ -166,6 +166,7 @@ Go to your repo → **Settings → Secrets and variables → Actions** and add:
 | `VPS_HOST` | Your VPS IP address or hostname |
 | `VPS_USERNAME` | SSH username (e.g. `root`) |
 | `VPS_SSH_KEY` | Private SSH key for the VPS |
+| `VPS_SSH_PORT` | SSH port (defaults to `22` if not set) |
 | `VPS_DEPLOY_PATH` | Deploy directory on VPS (e.g. `/home/user/unit-bot`) |
 
 To generate an SSH key pair (if you don't have one):
