@@ -16,7 +16,7 @@ Source files:
 - `src/convert.ts` — Unit conversion logic. Exports `convertMessage` (value+unit pairs), `detectBareUnits` (unit names without values), `formatConversions`.
 - `src/currency.ts` — Currency detection, conversion, and formatting. Exports `detectCurrencies`, `convertCurrencies`, `formatCurrencyConversions`, `SUPPORTED_CURRENCIES`.
 - `src/rates.ts` — Exchange rate fetching from open.er-api.com (free, no API key). Auto-refreshes based on API's `time_next_update_unix`. Falls back to last known rates on failure.
-- `src/store.ts` — Per-guild currency config via SQLite (`bun:sqlite`). Stores which currencies are enabled per server. `null` = all currencies enabled (default).
+- `src/store.ts` — Per-guild currency config via SQLite (`bun:sqlite`). Stores which currencies are enabled per server. Empty list = no currencies enabled (default). DMs get all currencies.
 
 Tests: `src/convert.test.ts`, `src/currency.test.ts`.
 
@@ -37,10 +37,11 @@ Requires `DISCORD_TOKEN` in `.env` (see `.env.example`). The bot needs the **Mes
 ### Currency conversion
 - `detectCurrencies` finds currency amounts via two patterns: suffix (`2000 yen`, `50 zł`, `100 USD`) and prefix symbols (`$50`, `€100`, `¥2000`).
 - `convertCurrencies` converts each detected amount to all enabled target currencies using USD as the base cross-rate.
-- `SUPPORTED_CURRENCIES` (21 currencies): USD, EUR, GBP, JPY, PLN, VND, KRW, CNY, INR, CAD, AUD, CHF, BRL, MXN, SEK, NOK, DKK, CZK, THB, TRY, RUB.
-- Per-guild config via SQLite: admins use `/currencies-add`, `/currencies-remove`, `/currencies-list`, `/currencies-reset`. No config = all currencies shown.
+- `SUPPORTED_CURRENCIES` (23 currencies): USD, EUR, GBP, JPY, PLN, VND, KRW, CNY, INR, CAD, AUD, CHF, BRL, MXN, SEK, NOK, DKK, CZK, THB, TRY, RUB, ZAR, BTC.
+- Per-guild config via SQLite: admins use `/currencies-add`, `/currencies-remove`, `/currencies-list`, `/currencies-supported`, `/currencies-reset`. Default is no currencies enabled; admins must explicitly enable currencies. `/currencies-add` and `/currencies-remove` accept comma-separated codes (e.g. `USD,EUR,GBP`). `/currencies-supported` lists all available currencies. `/currencies-reset` clears the enabled list (disables all conversion).
 - `try` suffix only matches when preceded by a number (`500 TRY`), avoiding false positive on the English word "try".
-- `$` symbol assumed to be USD. Use `C$` for CAD, `A$` for AUD.
+- `$` symbol assumed to be USD. Use `C$` for CAD, `A$` for AUD. `₿` symbol for BTC.
+- BTC uses high-precision formatting (up to 8 decimal places) due to small fractional values.
 - Number formatting uses `Intl.NumberFormat` with per-currency locale.
 
 ## Style

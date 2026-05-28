@@ -1,7 +1,8 @@
 import { Database } from "bun:sqlite";
+import { join } from "path";
 import { SUPPORTED_CURRENCIES } from "./currency";
 
-const DB_PATH = "guild_config.db";
+const DB_PATH = join(process.env.DATA_DIR ?? ".", "guild_config.db");
 
 let db: Database;
 
@@ -17,26 +18,22 @@ export function initStore(): void {
 	`);
 }
 
-export function getEnabledCurrencies(guildId: string | null): string[] | null {
-	if (!guildId) return null;
+export function getEnabledCurrencies(guildId: string | null): string[] {
+	if (!guildId) return [...SUPPORTED_CURRENCIES];
 
 	const rows = db
 		.prepare("SELECT currency_code FROM guild_currencies WHERE guild_id = ?")
 		.all(guildId) as { currency_code: string }[];
 
-	if (rows.length === 0) return null;
-
 	return rows.map((r) => r.currency_code);
 }
 
-export function addCurrency(guildId: string, code: string): boolean {
+export function addCurrency(guildId: string, code: string): void {
 	const upper = code.toUpperCase();
-	if (!SUPPORTED_CURRENCIES.includes(upper)) return false;
 
 	db.prepare(
 		"INSERT OR IGNORE INTO guild_currencies (guild_id, currency_code) VALUES (?, ?)",
 	).run(guildId, upper);
-	return true;
 }
 
 export function removeCurrency(guildId: string, code: string): boolean {

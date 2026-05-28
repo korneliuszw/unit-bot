@@ -45,6 +45,8 @@ export const SUPPORTED_CURRENCIES = [
 	"THB",
 	"TRY",
 	"RUB",
+	"ZAR",
+	"BTC",
 ];
 
 const CURRENCY_DEFS: CurrencyDef[] = [
@@ -69,6 +71,8 @@ const CURRENCY_DEFS: CurrencyDef[] = [
 	{ code: "THB", names: ["thb", "baht"], symbol: "฿", locale: "th-TH" },
 	{ code: "TRY", names: ["try", "lira"], symbol: "₺", locale: "tr-TR" },
 	{ code: "RUB", names: ["rub", "ruble", "rubles"], locale: "ru-RU" },
+	{ code: "ZAR", names: ["zar", "rand", "rands"], locale: "en-ZA" },
+	{ code: "BTC", names: ["btc", "bitcoin"], symbol: "₿", locale: "en-US" },
 ];
 
 const CURRENCY_SYMBOLS: CurrencyDef[] = CURRENCY_DEFS.filter(
@@ -178,9 +182,11 @@ export function detectCurrencies(text: string): CurrencyMatch[] {
 export function convertCurrencies(
 	matches: CurrencyMatch[],
 	rates: Record<string, number>,
-	enabledCurrencies: string[] | null,
+	enabledCurrencies: string[],
 ): CurrencyConversion[] {
-	const targetCurrencies = enabledCurrencies ?? SUPPORTED_CURRENCIES;
+	if (enabledCurrencies.length === 0) return [];
+
+	const targetCurrencies = enabledCurrencies;
 
 	return matches.map((m) => {
 		const sourceRate = rates[m.currency];
@@ -214,6 +220,7 @@ export function convertCurrencies(
 }
 
 const NO_DECIMAL_CURRENCIES = new Set(["JPY", "KRW", "VND"]);
+const HIGH_PRECISION_CURRENCIES = new Set(["BTC"]);
 
 function formatCurrencyValue(value: number, currencyCode: string): string {
 	const def = CURRENCY_DEFS.find((d) => d.code === currencyCode);
@@ -224,6 +231,13 @@ function formatCurrencyValue(value: number, currencyCode: string): string {
 			maximumFractionDigits: 0,
 			minimumFractionDigits: 0,
 		}).format(Math.round(value));
+	}
+
+	if (HIGH_PRECISION_CURRENCIES.has(currencyCode)) {
+		return new Intl.NumberFormat(locale, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 8,
+		}).format(value);
 	}
 
 	return new Intl.NumberFormat(locale, {

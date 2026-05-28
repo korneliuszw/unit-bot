@@ -35,11 +35,11 @@ const client = new Client({
 
 const CURRENCIES_ADD = new SlashCommandBuilder()
 	.setName("currencies-add")
-	.setDescription("Add a currency to the server's enabled list")
+	.setDescription("Add currencies to the server's enabled list (comma-separated)")
 	.addStringOption((opt) =>
 		opt
-			.setName("code")
-			.setDescription("Currency code (e.g. USD, EUR, JPY)")
+			.setName("codes")
+			.setDescription("Currency codes, e.g. USD,EUR,JPY")
 			.setRequired(true),
 	)
 	.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
@@ -47,11 +47,11 @@ const CURRENCIES_ADD = new SlashCommandBuilder()
 
 const CURRENCIES_REMOVE = new SlashCommandBuilder()
 	.setName("currencies-remove")
-	.setDescription("Remove a currency from the server's enabled list")
+	.setDescription("Remove currencies from the server's enabled list (comma-separated)")
 	.addStringOption((opt) =>
 		opt
-			.setName("code")
-			.setDescription("Currency code (e.g. USD, EUR, JPY)")
+			.setName("codes")
+			.setDescription("Currency codes, e.g. USD,EUR,JPY")
 			.setRequired(true),
 	)
 	.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
@@ -59,12 +59,17 @@ const CURRENCIES_REMOVE = new SlashCommandBuilder()
 
 const CURRENCIES_LIST = new SlashCommandBuilder()
 	.setName("currencies-list")
-	.setDescription("List all enabled currencies for this server")
+	.setDescription("List enabled currencies for this server")
+	.setDMPermission(false);
+
+const CURRENCIES_SUPPORTED = new SlashCommandBuilder()
+	.setName("currencies-supported")
+	.setDescription("List all supported currencies")
 	.setDMPermission(false);
 
 const CURRENCIES_RESET = new SlashCommandBuilder()
 	.setName("currencies-reset")
-	.setDescription("Reset to all supported currencies")
+	.setDescription("Clear all enabled currencies (disables currency conversion)")
 	.setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild)
 	.setDMPermission(false);
 
@@ -79,6 +84,7 @@ client.once(Events.ClientReady, async (c) => {
 			CURRENCIES_ADD,
 			CURRENCIES_REMOVE,
 			CURRENCIES_LIST,
+			CURRENCIES_SUPPORTED,
 			CURRENCIES_RESET,
 		]);
 		console.log("Slash commands registered");
@@ -105,13 +111,15 @@ client.on(Events.MessageCreate, (message: Message) => {
 		const rates = getRates();
 		if (Object.keys(rates).length > 1) {
 			const enabled = getEnabledCurrencies(message.guildId);
-			const currencyConversions = convertCurrencies(
-				currencyMatches,
-				rates,
-				enabled,
-			);
-			const formatted = formatCurrencyConversions(currencyConversions);
-			if (formatted) parts.push(formatted);
+			if (enabled.length > 0) {
+				const currencyConversions = convertCurrencies(
+					currencyMatches,
+					rates,
+					enabled,
+				);
+				const formatted = formatCurrencyConversions(currencyConversions);
+				if (formatted) parts.push(formatted);
+			}
 		}
 	}
 
@@ -131,46 +139,55 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 
 	switch (commandName) {
 		case "currencies-add": {
-			const code = options.getString("code", true).toUpperCase();
-			if (!SUPPORTED_CURRENCIES.includes(code)) {
-				await interaction.reply({
-					content: `Unknown currency: \`${code}\`. Supported: ${SUPPORTED_CURRENCIES.join(", ")}`,
-					ephemeral: true,
-				});
-				return;
+			const raw = options.getString("codes", true);
+			const codes = raw.split(",").map((s) => s.trim().toUpperCase()).filter((s) => s.length > 0);
+			const added: string[] = [];
+			const invalid: string[] = [];
+
+			for (const code of codes) {
+				if (!SUPPORTED_CURRENCIES.includes(code)) {
+					invalid.push(code);
+				} else {
+					addCurrency(interaction.guildId, code);
+					added.push(code);
+				}
 			}
-			addCurrency(interaction.guildId, code);
+
 			const enabled = getEnabledCurrencies(interaction.guildId);
-			const list = enabled?.join(", ") ?? SUPPORTED_CURRENCIES.join(", ");
-			await interaction.reply({
-				content: `Added \`${code}\`. Enabled currencies: ${list}`,
-				ephemeral: true,
-			});
+			const lines: string[] = [];
+			if (added.length > 0) lines.push(`Added: ${added.join(", ")}`);
+			if (invalid.length > 0) lines.push(`Unknown: ${invalid.join(", ")} (use \`/currencies-supported\` to see valid codes)`);
+			lines.push(`Enabled: ${enabled.join(", ") || "none"}`);
+			await interaction.reply({ content: lines.join("\n"), ephemeral: true });
 			break;
 		}
 		case "currencies-remove": {
-			const code = options.getString("code", true).toUpperCase();
-			const removed = removeCurrency(interaction.guildId, code);
-			if (!removed) {
-				await interaction.reply({
-					content: `\`${code}\` was not in the enabled list.`,
-					ephemeral: true,
-				});
-				return;
+			const raw = options.getString("codes", true);
+			const codes = raw.split(",").map((s) => s.trim().toUpperCase()).filter((s) => s.length > 0);
+			const removed: string[] = [];
+			const notFound: string[] = [];
+
+			for (const code of codes) {
+				if (removeCurrency(interaction.guildId, code)) {
+					removed.push(code);
+				} else {
+					notFound.push(code);
+				}
 			}
+
 			const enabled = getEnabledCurrencies(interaction.guildId);
-			const list = enabled?.join(", ") ?? "All (default)";
-			await interaction.reply({
-				content: `Removed \`${code}\`. Enabled currencies: ${list}`,
-				ephemeral: true,
-			});
+			const lines: string[] = [];
+			if (removed.length > 0) lines.push(`Removed: ${removed.join(", ")}`);
+			if (notFound.length > 0) lines.push(`Not in enabled list: ${notFound.join(", ")}`);
+			lines.push(`Enabled: ${enabled.join(", ") || "none"}`);
+			await interaction.reply({ content: lines.join("\n"), ephemeral: true });
 			break;
 		}
 		case "currencies-list": {
 			const enabled = getEnabledCurrencies(interaction.guildId);
-			if (enabled === null) {
+			if (enabled.length === 0) {
 				await interaction.reply({
-					content: `All currencies enabled (default): ${SUPPORTED_CURRENCIES.join(", ")}`,
+					content: "No currencies enabled. Use `/currencies-add` to enable currencies, or `/currencies-supported` to see all available currencies.",
 					ephemeral: true,
 				});
 			} else {
@@ -181,10 +198,17 @@ client.on(Events.InteractionCreate, async (interaction: Interaction) => {
 			}
 			break;
 		}
+		case "currencies-supported": {
+			await interaction.reply({
+				content: `Supported currencies: ${SUPPORTED_CURRENCIES.join(", ")}`,
+				ephemeral: true,
+			});
+			break;
+		}
 		case "currencies-reset": {
 			resetCurrencies(interaction.guildId);
 			await interaction.reply({
-				content: `Reset to all supported currencies: ${SUPPORTED_CURRENCIES.join(", ")}`,
+				content: "Cleared all enabled currencies. Currency conversion is now disabled. Use `/currencies-add` to enable specific currencies.",
 				ephemeral: true,
 			});
 			break;

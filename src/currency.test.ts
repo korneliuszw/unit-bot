@@ -30,13 +30,15 @@ const MOCK_RATES: Record<string, number> = {
 	THB: 35,
 	TRY: 30,
 	RUB: 80,
+	ZAR: 18.5,
+	BTC: 0.000015,
 };
 
 const ALL_CODES = [...SUPPORTED_CURRENCIES];
 
 describe("SUPPORTED_CURRENCIES", () => {
-	test("contains 21 currencies", () => {
-		expect(SUPPORTED_CURRENCIES).toHaveLength(21);
+	test("contains 23 currencies", () => {
+		expect(SUPPORTED_CURRENCIES).toHaveLength(23);
 	});
 
 	test("includes required currencies", () => {
@@ -61,6 +63,8 @@ describe("SUPPORTED_CURRENCIES", () => {
 		expect(SUPPORTED_CURRENCIES).toContain("THB");
 		expect(SUPPORTED_CURRENCIES).toContain("TRY");
 		expect(SUPPORTED_CURRENCIES).toContain("RUB");
+		expect(SUPPORTED_CURRENCIES).toContain("ZAR");
+		expect(SUPPORTED_CURRENCIES).toContain("BTC");
 	});
 });
 
@@ -211,6 +215,20 @@ describe("detectCurrencies", () => {
 			expect(m).toHaveLength(1);
 			expect(m[0].value).toBe(5000);
 			expect(m[0].currency).toBe("RUB");
+		});
+
+		test("ZAR", () => {
+			const m = detectCurrencies("500 ZAR");
+			expect(m).toHaveLength(1);
+			expect(m[0].value).toBe(500);
+			expect(m[0].currency).toBe("ZAR");
+		});
+
+		test("BTC", () => {
+			const m = detectCurrencies("0.5 BTC");
+			expect(m).toHaveLength(1);
+			expect(m[0].value).toBe(0.5);
+			expect(m[0].currency).toBe("BTC");
 		});
 	});
 
@@ -394,6 +412,22 @@ describe("detectCurrencies", () => {
 			expect(m2).toHaveLength(1);
 			expect(m2[0].currency).toBe("RUB");
 		});
+
+		test("rand / rands (ZAR)", () => {
+			const m1 = detectCurrencies("500 rand");
+			expect(m1).toHaveLength(1);
+			expect(m1[0].currency).toBe("ZAR");
+
+			const m2 = detectCurrencies("500 rands");
+			expect(m2).toHaveLength(1);
+			expect(m2[0].currency).toBe("ZAR");
+		});
+
+		test("bitcoin (BTC)", () => {
+			const m = detectCurrencies("0.5 bitcoin");
+			expect(m).toHaveLength(1);
+			expect(m[0].currency).toBe("BTC");
+		});
 	});
 
 	describe("suffix: no space between number and code", () => {
@@ -538,6 +572,13 @@ describe("detectCurrencies", () => {
 			expect(m).toHaveLength(1);
 			expect(m[0].value).toBe(40);
 			expect(m[0].currency).toBe("AUD");
+		});
+
+		test("₿0.5 → BTC", () => {
+			const m = detectCurrencies("₿0.5");
+			expect(m).toHaveLength(1);
+			expect(m[0].value).toBe(0.5);
+			expect(m[0].currency).toBe("BTC");
 		});
 	});
 
@@ -778,12 +819,18 @@ describe("convertCurrencies", () => {
 		expect(usdTarget).toBeUndefined();
 	});
 
-	test("converts to all enabled currencies when enabledCurrencies is null", () => {
+	test("converts to all currencies when full list is provided", () => {
 		const matches = detectCurrencies("100 USD");
-		const conversions = convertCurrencies(matches, MOCK_RATES, null);
+		const conversions = convertCurrencies(matches, MOCK_RATES, ALL_CODES);
 		expect(conversions).toHaveLength(1);
-expect(conversions[0].targets).toHaveLength(20);
-		});
+		expect(conversions[0].targets).toHaveLength(22);
+	});
+
+	test("returns empty array when enabled currencies is empty", () => {
+		const matches = detectCurrencies("100 USD");
+		const conversions = convertCurrencies(matches, MOCK_RATES, []);
+		expect(conversions).toHaveLength(0);
+	});
 
 	test("converts only to specified enabled currencies", () => {
 		const matches = detectCurrencies("100 USD");
