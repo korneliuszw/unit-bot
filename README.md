@@ -50,6 +50,7 @@ Full word forms work too: `kilograms`, `meters`, `pounds`, `celsius`, `fahrenhei
 | KRW | won | ₩ |
 | CNY | yuan, rmb | — |
 | INR | rupee, rupees | ₹ |
+| PKR | pakistani rupee, pakistani rupees | ₨ |
 | CAD | cad | C$ |
 | AUD | aud | A$ |
 | CHF | chf | — |

@@ -37,10 +37,10 @@ Requires `DISCORD_TOKEN` in `.env` (see `.env.example`). The bot needs the **Mes
 ### Currency conversion
 - `detectCurrencies` finds currency amounts via two patterns: suffix (`2000 yen`, `50 zł`, `100 USD`) and prefix symbols (`$50`, `€100`, `¥2000`).
 - `convertCurrencies` converts each detected amount to all enabled target currencies using USD as the base cross-rate.
-- `SUPPORTED_CURRENCIES` (23 currencies): USD, EUR, GBP, JPY, PLN, VND, KRW, CNY, INR, CAD, AUD, CHF, BRL, MXN, SEK, NOK, DKK, CZK, THB, TRY, RUB, ZAR, BTC.
+- `SUPPORTED_CURRENCIES` (24 currencies): USD, EUR, GBP, JPY, PLN, VND, KRW, CNY, INR, PKR, CAD, AUD, CHF, BRL, MXN, SEK, NOK, DKK, CZK, THB, TRY, RUB, ZAR, BTC.
 - Per-guild config via SQLite: admins use `/currencies-add`, `/currencies-remove`, `/currencies-list`, `/currencies-supported`, `/currencies-reset`. Default is no currencies enabled; admins must explicitly enable currencies. `/currencies-add` and `/currencies-remove` accept comma-separated codes (e.g. `USD,EUR,GBP`). `/currencies-supported` lists all available currencies. `/currencies-reset` clears the enabled list (disables all conversion).
 - `try` suffix only matches when preceded by a number (`500 TRY`), avoiding false positive on the English word "try".
-- `$` symbol assumed to be USD. Use `C$` for CAD, `A$` for AUD. `₿` symbol for BTC.
+- `$` symbol assumed to be USD. Use `C$` for CAD, `A$` for AUD. `₨` symbol for PKR. `₿` symbol for BTC.
 - BTC uses high-precision formatting (up to 8 decimal places) due to small fractional values.
 - Number formatting uses `Intl.NumberFormat` with per-currency locale.
 

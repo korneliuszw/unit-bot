@@ -18,6 +18,7 @@ const MOCK_RATES: Record<string, number> = {
 	KRW: 1300,
 	CNY: 7.2,
 	INR: 83,
+	PKR: 278,
 	CAD: 1.35,
 	AUD: 1.55,
 	CHF: 0.88,
@@ -37,8 +38,8 @@ const MOCK_RATES: Record<string, number> = {
 const ALL_CODES = [...SUPPORTED_CURRENCIES];
 
 describe("SUPPORTED_CURRENCIES", () => {
-	test("contains 23 currencies", () => {
-		expect(SUPPORTED_CURRENCIES).toHaveLength(23);
+	test("contains 24 currencies", () => {
+		expect(SUPPORTED_CURRENCIES).toHaveLength(24);
 	});
 
 	test("includes required currencies", () => {
@@ -51,6 +52,7 @@ describe("SUPPORTED_CURRENCIES", () => {
 		expect(SUPPORTED_CURRENCIES).toContain("KRW");
 		expect(SUPPORTED_CURRENCIES).toContain("CNY");
 		expect(SUPPORTED_CURRENCIES).toContain("INR");
+		expect(SUPPORTED_CURRENCIES).toContain("PKR");
 		expect(SUPPORTED_CURRENCIES).toContain("CAD");
 		expect(SUPPORTED_CURRENCIES).toContain("AUD");
 		expect(SUPPORTED_CURRENCIES).toContain("CHF");
@@ -131,6 +133,13 @@ describe("detectCurrencies", () => {
 			expect(m).toHaveLength(1);
 			expect(m[0].value).toBe(1000);
 			expect(m[0].currency).toBe("INR");
+		});
+
+		test("PKR", () => {
+			const m = detectCurrencies("1000 PKR");
+			expect(m).toHaveLength(1);
+			expect(m[0].value).toBe(1000);
+			expect(m[0].currency).toBe("PKR");
 		});
 
 		test("CAD", () => {
@@ -315,6 +324,16 @@ describe("detectCurrencies", () => {
 			const m2 = detectCurrencies("500 rupees");
 			expect(m2).toHaveLength(1);
 			expect(m2[0].currency).toBe("INR");
+		});
+
+		test("pakistani rupee / pakistani rupees", () => {
+			const m1 = detectCurrencies("500 pakistani rupee");
+			expect(m1).toHaveLength(1);
+			expect(m1[0].currency).toBe("PKR");
+
+			const m2 = detectCurrencies("500 pakistani rupees");
+			expect(m2).toHaveLength(1);
+			expect(m2[0].currency).toBe("PKR");
 		});
 
 		test("peso / pesos", () => {
@@ -530,6 +549,13 @@ describe("detectCurrencies", () => {
 			expect(m).toHaveLength(1);
 			expect(m[0].value).toBe(500);
 			expect(m[0].currency).toBe("INR");
+		});
+
+		test("₨500 → PKR", () => {
+			const m = detectCurrencies("₨500");
+			expect(m).toHaveLength(1);
+			expect(m[0].value).toBe(500);
+			expect(m[0].currency).toBe("PKR");
 		});
 
 		test("R$200 → BRL", () => {
@@ -823,7 +849,7 @@ describe("convertCurrencies", () => {
 		const matches = detectCurrencies("100 USD");
 		const conversions = convertCurrencies(matches, MOCK_RATES, ALL_CODES);
 		expect(conversions).toHaveLength(1);
-		expect(conversions[0].targets).toHaveLength(22);
+		expect(conversions[0].targets).toHaveLength(SUPPORTED_CURRENCIES.length - 1);
 	});
 
 	test("returns empty array when enabled currencies is empty", () => {
